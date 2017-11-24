@@ -1,0 +1,46 @@
+#!/bin/sh
+#
+# postinst
+#
+
+spool="/var/spool/emailrelay"
+submit="/usr/sbin/emailrelay-submit"
+
+create_spool()
+{
+	test -d "$spool" || mkdir "$spool"
+}
+
+fix_permissions()
+{
+	if ls -nd "$spool" | cut -d' ' --fields=3,4 | grep -q '^0 0$'
+	then
+		chgrp daemon "$spool" && chmod 775 "$spool"
+	fi
+	if ls -n "$submit" | cut -d' ' --fields=3,4 | grep -q '^0 0$'
+	then
+		chgrp daemon "$submit" && chmod g+s "$submit"
+	fi
+}
+
+fix_html()
+{
+	# index.html refers to changelog.html, not changelog.html.gz
+	cd /usr/share/doc/emailrelay && gzip -d -c changelog.html.gz > changelog.html
+}
+
+create_config()
+{
+	if test ! -f /etc/emailrelay.conf -a -f /etc/emailrelay.conf.template
+	then
+		cp /etc/emailrelay.conf.template /etc/emailrelay.conf
+	fi
+}
+
+#DEBHELPER#
+
+create_config
+create_spool
+fix_permissions
+fix_html
+
